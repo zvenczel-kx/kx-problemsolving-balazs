@@ -1,0 +1,120 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import com.pswidersk.gradle.python.VenvTask
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
+
+plugins {
+    id "com.pswidersk.python-plugin" version "1.3.0"
+    id "com.bmuschko.docker-remote-api" version "7.3.0"
+}
+
+pythonPlugin {
+    pythonVersion.set("3.10.4")
+}
+
+// OpenAPI Generate
+
+task generateGatewayServer(type: GenerateTask){
+    generatorName = "python-flask"
+    inputSpec = "$rootDir/api/gateway.yaml".toString()
+    additionalProperties = [
+            packageName: "gateway_server"
+    ]
+    outputDir = "${buildDir}/generated/python/gateway_server".toString()
+
+    inputs.file("$rootDir/api/gateway.yaml".toString())
+    outputs.files(
+            fileTree("${buildDir}/generated/python/gateway_server".toString()) {
+                exclude 'build'
+                exclude 'gateway_server.egg-info'
+            }
+    )
+}
+
+task generateStorageClient(type: GenerateTask){
+    generatorName = "python"
+    inputSpec = "$rootDir/api/storage.yaml".toString()
+    additionalProperties = [
+            packageName: "storage_client"
+    ]
+    outputDir = "${buildDir}/generated/python/storage_client".toString()
+
+    inputs.file("$rootDir/api/storage.yaml".toString())
+    outputs.files(
+            fileTree("${buildDir}/generated/python/storage_client".toString()) {
+                exclude 'build'
+                exclude 'storage_client.egg-info'
+            }
+    )
+}
+
+task generateGatewaySrvOpenApiYaml(type: GenerateTask){
+    generatorName = "openapi-yaml"
+    inputSpec = "$rootDir/api/gateway.yaml".toString()
+    outputDir = "${projectDir}/src/main/python/gatewaysrv/gatewaysrv".toString()
+
+    inputs.file("$rootDir/api/gateway.yaml".toString())
+    outputs.files(
+            fileTree("${projectDir}/src/main/python/gatewaysrv".toString()) {
+                include '.openapi-generator'
+                exclude 'openapi'
+            }
+    )
+}
+
+// Python
+
+task pipInstallBuildReq(type: VenvTask) {
+    mustRunAfter(generateStorageClient)
+    mustRunAfter(generateGatewayServer)
+    mustRunAfter(generateGatewaySrvOpenApiYaml)
+    venvExec = "pip"
+    args = ["install", "setuptools", "wheel", "build"]
+}
+
+task pipBuildGatewayServer(type: VenvTask) {
+    dependsOn(pipInstallBuildReq)
+    dependsOn(generateGatewayServer)
+    workingDir = file("${buildDir}/generated/python/gateway_server".toString())
+    args = [
+            "-m", "build", "--wheel"
+    ]
+}
+
+task pipBuildStorageClient(type: VenvTask) {
+    dependsOn(pipInstallBuildReq)
+    dependsOn(generateStorageClient)
+    workingDir = file("${buildDir}/generated/python/storage_client".toString())
+    args = [
+            "-m", "build", "--wheel"
+    ]
+}
+
+task pipBuildGatewaySrv(type: VenvTask) {
+    dependsOn(pipInstallBuildReq)
+    dependsOn(generateGatewaySrvOpenApiYaml)
+    dependsOn(pipBuildGatewayServer)
+    dependsOn(pipBuildStorageClient)
+    workingDir = file("${projectDir}/src/main/python/gatewaysrv".toString())
+    args = ["-m", "build", "--wheel"]
+}
+
+// Docker
+
+task buildGatewaysrvImage(type: DockerBuildImage) {
+    dependsOn(generateGatewayServer)
+    dependsOn(generateStorageClient)
+    dependsOn(generateGatewaySrvOpenApiYaml)
+    inputDir = file('.')
+    images.add('gatewaysrv:local')
+}
+task build() {
+    dependsOn(buildGatewaysrvImage)
+}
+
+task createGatewaysrvContainer(type: DockerCreateContainer) {
+    dependsOn buildGatewaysrvImage
+    targetImageId buildGatewaysrvImage.getImageId()
+    hostConfig.portBindings = ['8080:8080']
+    hostConfig.autoRemove = true
+}

@@ -1,0 +1,52 @@
+openapi: "3.0.2"
+info:
+  title: "Gateway Service"
+  version: "1.0"
+servers:
+  - url: https://api.server.test
+paths:
+  /data:
+    get:
+      operationId: gwapi.api.data_get
+      responses:
+        '200':
+          $ref: '#/components/responses/data'
+        '503':
+          $ref: '#/components/responses/data'
+  /status:
+    get:
+      operationId: gwapi.api.status_get
+      responses:
+        '200':
+          $ref: '#/components/responses/status'
+        '503':
+          $ref: '#/components/responses/status'
+
+components:
+  schemas:
+    statusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - UP
+            - DOWN
+    dataResponse:
+      type: object
+
+  responses:
+    status:
+      description: Status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/statusResponse'
+    data:
+      description: Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/dataResponse'

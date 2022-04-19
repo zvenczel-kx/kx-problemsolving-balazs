@@ -1,0 +1,35 @@
+plugins {
+    id "org.openapi.generator" version "5.3.0"
+}
+
+import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
+
+task validateGatewaySpec(type: ValidateTask){
+    inputSpec = "$rootDir/api/gateway.yaml".toString()
+    recommend = true
+}
+
+task validateStorageSpec(type: ValidateTask){
+    inputSpec = "$rootDir/api/storage.yaml".toString()
+    recommend = true
+}
+
+task validateSpecs(dependsOn: ['validateGatewaySpec', 'validateStorageSpec'])
+
+task build() {
+    dependsOn('validateSpecs')
+    subprojects.each { dependsOn("${it.name}:build") }
+}
+
+subprojects {
+    task clean(type: Delete) {
+        delete(
+                'build',
+                "src/main/python/${project.name}srv/.openapi-generator",
+                "src/main/python/${project.name}srv/build",
+                "src/main/python/${project.name}srv/dist",
+                "src/main/python/${project.name}srv/openapi",
+                "src/main/python/${project.name}srv/${project.name}srv.egg-info"
+        )
+    }
+}

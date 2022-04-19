@@ -1,0 +1,47 @@
+openapi: "3.0.2"
+info:
+  title: "Storage Service"
+  version: "1.0"
+servers:
+  - url: https://api.server.test
+paths:
+  /data:
+    get:
+      operationId: storageapi.api.data_get
+      responses:
+        '200':
+          $ref: '#/components/responses/data'
+  /status:
+    get:
+      operationId: storageapi.api.status_get
+      responses:
+        '200':
+          $ref: '#/components/responses/status'
+
+components:
+  schemas:
+    statusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - UP
+    dataResponse:
+      type: object
+
+  responses:
+    status:
+      description: Status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/statusResponse'
+    data:
+      description: Status
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/dataResponse'

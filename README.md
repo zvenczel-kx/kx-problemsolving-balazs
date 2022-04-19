@@ -21,3 +21,11 @@ The services can be implemented using any programming language.
 * Provide a solution for the described problem and give us the instructions necessary to execute it
 * We would like to have your solution in form of a Pull Request into the main repository
 * _What should the Gateway do if no Storage Services are running?_
+
+## Solution
+
+To start, just us one of the start scripts.
+It is way over-engineered and at the same time I haven't had too much time to work on it. Thats why the long delay.
+There are things that could be way more sophisticated.
+Like the IDE integration and up-to-date checks in gradle.
+Also the the roundrobin is is bit simpler than it should be.

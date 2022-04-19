@@ -1,0 +1,72 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import com.pswidersk.gradle.python.VenvTask
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
+
+plugins {
+    id "com.pswidersk.python-plugin" version "1.3.0"
+    id "com.bmuschko.docker-remote-api" version "7.3.0"
+}
+
+pythonPlugin {
+    pythonVersion.set("3.10.4")
+}
+
+// OpenAPI Generate
+
+task generateStorageServer(type: GenerateTask){
+    generatorName = "python-flask"
+    inputSpec = "$rootDir/api/storage.yaml".toString()
+    additionalProperties = [
+            packageName: "storage_server"
+    ]
+    outputDir = "${buildDir}/generated/python/storage_server".toString()
+}
+
+task generateStorageSrvOpenApiYaml(type: GenerateTask){
+    generatorName = "openapi-yaml"
+    inputSpec = "$rootDir/api/storage.yaml".toString()
+    outputDir = "${projectDir}/src/main/python/storagesrv/storagesrv".toString()
+}
+
+// Python
+
+task pipInstallBuildReq(type: VenvTask) {
+    mustRunAfter(generateStorageServer)
+    mustRunAfter(generateStorageSrvOpenApiYaml)
+    venvExec = "pip"
+    args = ["install", "setuptools", "wheel", "build"]
+}
+
+task pipBuildStorageServer(type: VenvTask) {
+    dependsOn(pipInstallBuildReq)
+    dependsOn(generateStorageServer)
+    workingDir = file("${buildDir}/generated/python/storage_server".toString())
+    args = ["-m", "build", "--wheel"]
+}
+
+task pipBuildStorageSrv(type: VenvTask) {
+    dependsOn(pipInstallBuildReq)
+    dependsOn(pipBuildStorageServer)
+    workingDir = file("${projectDir}/src/main/python/storagesrv".toString())
+    args = ["-m", "build", "--wheel"]
+}
+
+// Docker
+
+task buildStoragesrvImage(type: DockerBuildImage) {
+    dependsOn(generateStorageServer)
+    dependsOn(generateStorageSrvOpenApiYaml)
+    inputDir = file('.')
+    images.add('storagesrv:local')
+}
+task build() {
+    dependsOn(buildStoragesrvImage)
+}
+
+task createStoragesrvContainer(type: DockerCreateContainer) {
+    dependsOn buildStoragesrvImage
+    targetImageId buildStoragesrvImage.getImageId()
+    hostConfig.portBindings = ['8080:8080']
+    hostConfig.autoRemove = true
+}

@@ -1,0 +1,7 @@
+*       text    eol=lf
+*.jar       binary
+**/build/generated/**   binary
+gradle/**   binary
+gradlew     binary
+gradlew.bat binary
+.gitattributes linguist-language=gitattributes
