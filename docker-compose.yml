@@ -1,0 +1,17 @@
+services:
+  gateway:
+    image: 'gatewaysrv:local'
+    environment:
+      STORAGE_SERVERS: 'http://st1:8080;http://st2:8080;http://st3:8080'
+  st1:
+    image: 'storagesrv:local'
+    environment:
+      MY_INSTANCE_ID: 'st1'
+  st2:
+    image: 'storagesrv:local'
+    environment:
+      MY_INSTANCE_ID: 'st2'
+  st3:
+    image: 'storagesrv:local'
+    environment:
+      MY_INSTANCE_ID: 'st3'
